@@ -8,9 +8,10 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 
 add_executable(robot_sim 
-    src/main.cpp 
+    src/shader.cpp 
     glad/src/glad.c 
 )
 
 target_include_directories(robot_sim PRIVATE glad/include) 
+target_include_directories(robot_sim PRIVATE include)
 target_link_libraries(robot_sim PRIVATE glfw OpenGL::GL)
