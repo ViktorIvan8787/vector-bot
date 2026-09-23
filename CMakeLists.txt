@@ -8,7 +8,8 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 
 add_executable(robot_sim 
-    src/shader.cpp 
+    src/main.cpp 
+    src/texture_loader.cpp
     glad/src/glad.c 
 )
 
