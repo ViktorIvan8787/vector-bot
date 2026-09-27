@@ -126,6 +126,7 @@ int main()
     ourShader.setInt("texture1", 0); // tell which sampler is for which tex
     ourShader.setInt("texture2", 1);
 
+
     
     // Window while loop
     while(!glfwWindowShouldClose(window))
@@ -143,8 +144,26 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
+        // Matrices - Rotating container
+        glm::mat4 model = glm::mat4(1.0f); // model matrix
+        glm::mat4 view = glm::mat4(1.0f); // view matrix
+        glm::mat4 projection; // projection matrix
+        model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // rotate as if on the floor
+        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+        projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        // retrieve matrix uniform locations
+        unsigned int modelLoc = glGetUniformLocation(ourShader.ID, "model");
+        unsigned int viewLoc = glGetUniformLocation(ourShader.ID, "view");
+        unsigned int projectionLoc = glGetUniformLocation(ourShader.ID, "projection");
+        // pass to shaders (3 different ways all do the same thing)
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection)); // normally best to put this outside loop as it dont change
+
+        // use shader
         ourShader.use();
         ourShader.setFloat("opacity", opacity);
+
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         
