@@ -100,8 +100,22 @@ int main()
         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
     unsigned int indices[] = {
-        0, 1, 3,
+        0, 1, 3, // currently unused
         1, 2, 3
+    };
+
+    // 10 different cube positions
+    glm::vec3 cubePositions[] = {
+        glm::vec3( 0.0f, 0.0f, 0.0f),
+        glm::vec3( 2.0f,  5.0f, -15.0f), 
+        glm::vec3(-1.5f, -2.2f, -2.5f),  
+        glm::vec3(-3.8f, -2.0f, -12.3f),  
+        glm::vec3( 2.4f, -0.4f, -3.5f),  
+        glm::vec3(-1.7f,  3.0f, -7.5f),  
+        glm::vec3( 1.3f, -2.0f, -2.5f),  
+        glm::vec3( 1.5f,  2.0f, -2.5f), 
+        glm::vec3( 1.5f,  0.2f, -1.5f), 
+        glm::vec3(-1.3f,  1.0f, -1.5f)  
     };
 
 
@@ -170,7 +184,7 @@ int main()
 
         // rendering
         glClearColor(0.059f, 0.063f, 0.2f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear depth and color each iteration
 
         // texture
         glActiveTexture(GL_TEXTURE0); // active texture unit first
@@ -182,27 +196,35 @@ int main()
         glm::mat4 model = glm::mat4(1.0f); // model matrix
         glm::mat4 view = glm::mat4(1.0f); // view matrix
         glm::mat4 projection; // projection matrix
-        model = glm::rotate(model, (float)(sin(0.4f * glfwGetTime())*sin(0.4f * glfwGetTime())) * glm::radians(500.0f), glm::vec3(0.5f, 1.0f, 0.0f)); // rotate as if on the floor
-        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -5.0f));
         projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         // retrieve matrix uniform locations
-        unsigned int modelLoc = glGetUniformLocation(ourShader.ID, "model");
         unsigned int viewLoc = glGetUniformLocation(ourShader.ID, "view");
         unsigned int projectionLoc = glGetUniformLocation(ourShader.ID, "projection");
         // pass to shaders (3 different ways all do the same thing)
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
-        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection)); // normally best to put this outside loop as it dont change
-
-        // depth
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear depth eat iteration
+        ourShader.setMat4("view", view);
+        ourShader.setMat4("projection", projection);
 
         // use shader
         ourShader.use();
         ourShader.setFloat("opacity", opacity);
 
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        // for loop for each cube that we want to render
+        for (unsigned int i = 0; i < 10; i++) 
+        {
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, cubePositions[i]);
+            float angle = 20.0f * i;
+            if (i%3 == 0) {
+                model = glm::rotate(model, glm::radians(50.0f * (float)glfwGetTime()), glm::vec3(1.0f, 0.3f, 0.5f));
+            } else {
+                model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            }
+            ourShader.setMat4("model", model);
+
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
         
         // check&call events and swap buffers
         glfwSwapBuffers(window);
