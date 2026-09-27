@@ -10,14 +10,34 @@
 #include <iostream>
 #include <cmath>
 
-// Resize window when updated
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void framebuffer_size_callback(GLFWwindow* window, int width, int height); // resize window when updated
 void processInput(GLFWwindow *window);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+float lastMouseX = SCR_WIDTH/2.0f; // middle of window
+float lastMouseY = SCR_HEIGHT/2.0f;
+float yaw = -90.0f;
+float pitch = 0.0f;
+float rightMouseHeld = false;
+float firstMouseCameraClick = true;
 float opacity = 0.5f;
+float fov = 45.0f;
+
+// camera
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget); // positive z axis of camera
+glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection)); // right x axis of camera
+glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight); // up y axis of camera
+
 
 int main()
 {
@@ -40,6 +60,8 @@ int main()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); // resizing
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     // Initialize GLAD as it manages function pointers for OpenGL
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -192,18 +214,22 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
-        // Matrices - Rotating container
-        glm::mat4 model = glm::mat4(1.0f); // model matrix
-        glm::mat4 view = glm::mat4(1.0f); // view matrix
-        glm::mat4 projection; // projection matrix
-        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -5.0f));
-        projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        // retrieve matrix uniform locations
-        unsigned int viewLoc = glGetUniformLocation(ourShader.ID, "view");
+        // projection matrix & fov
+        glm::mat4 projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         unsigned int projectionLoc = glGetUniformLocation(ourShader.ID, "projection");
-        // pass to shaders (3 different ways all do the same thing)
-        ourShader.setMat4("view", view);
         ourShader.setMat4("projection", projection);
+
+        // camera/view matrix
+        float currentFrame = (float)glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        glm::mat4 view = glm::mat4(1.0f);
+        const float radius = 10.0f;
+        float camX = sin(glfwGetTime()) * radius;
+        float camZ = cos(glfwGetTime()) * radius;
+        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp); // lookAt needs position, target, and then up vector
+        ourShader.setMat4("view", view);
 
         // use shader
         ourShader.use();
@@ -240,11 +266,81 @@ int main()
     return 0;
 }
 
-void processInput(GLFWwindow *window)
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+    const float cameraSense = 0.1f;
+
+    if (!rightMouseHeld)
+    {
+        lastMouseX = xpos;
+        lastMouseY = ypos;
+    }
+    if (firstMouseCameraClick)
+    {
+        lastMouseX = xpos;
+        lastMouseY = ypos; 
+        firstMouseCameraClick = false;
+    }
+
+    float xoffset = xpos - lastMouseX;
+    float yoffset = lastMouseY - ypos; // Y coords reversed
+    lastMouseX = xpos;
+    lastMouseY = ypos;
+
+    xoffset *= cameraSense;
+    yoffset *= cameraSense;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    if (pitch > 89.0f) pitch = 89.0f; // prevents weird camera 
+    if (pitch < -89.0f) pitch = -89.0f;
+
+    glm::vec3 direction;
+    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.y = sin(glm::radians(pitch));
+    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(direction);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) 
+{
+    fov -= (float)yoffset;
+    if (fov < 1.0f) fov = 1.0f;
+    if (fov > 80.0f) fov = 80.0f;
+}
+
+void processInput(GLFWwindow *window)
+{   
+    // Exit
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    // Camera
+    const float cameraSpeed = 2.0f * deltaTime;
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+    {
+        rightMouseHeld = true;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    } else {
+        rightMouseHeld = false;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        cameraPos += cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        cameraPos -= cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        cameraPos += cameraSpeed * cameraUp;
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        cameraPos -= cameraSpeed * cameraUp;
+
+    // Texture
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
         opacity += 0.001f;
         if (opacity > 1.0f) opacity = 1.0f;
@@ -253,6 +349,7 @@ void processInput(GLFWwindow *window)
         opacity -= 0.001f;
         if (opacity < 0.0f) opacity = 0.0f;
     }
+
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
