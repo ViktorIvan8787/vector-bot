@@ -10,7 +10,7 @@ find_package(OpenGL REQUIRED)
 add_executable(robot_sim 
     src/main.cpp 
     src/texture_loader.cpp
-    glad/src/glad.c 
+    glad/src/glad.c
 )
 
 target_include_directories(robot_sim PRIVATE glad/include) 
