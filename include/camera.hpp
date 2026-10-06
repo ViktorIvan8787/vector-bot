@@ -18,7 +18,7 @@ const float YAW = -90.0f;
 const float PITCH = 0.0f;
 const float SPEED = 2.5f;
 const float SENSITIVITY = 0.1f;
-const float ZOOM = 45.0f;
+const float ZOOM = 80.0f;
 
 // camera class that processes input and calculates Euler Angles, Vectors, Matrices for OpenGL
 class Camera
@@ -84,7 +84,7 @@ public:
         if (constrainPitch) 
         {
             if (Pitch > 89.0f) Pitch = 89.0f;
-            if (Pitch < -89.0f) Pitch = -89.0;
+            if (Pitch < -89.0f) Pitch = -89.0f;
         }
 
         updateCameraVectors();
@@ -95,6 +95,14 @@ public:
         Zoom -= (float)yoffset;
         if (Zoom < 1.0f) Zoom = 1.0f;
         if (Zoom > 80.0f) Zoom = 80.0f;
+    }
+
+    void LookAt(glm::vec3 target)
+    {
+        glm::vec direction = glm::normalize(target - Position);
+        Yaw = glm::degrees(atan2(direction.z, direction.x));
+        Pitch = glm::degrees(asin(direction.y));
+        updateCameraVectors();
     }
 
 private:
