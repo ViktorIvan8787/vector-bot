@@ -109,7 +109,6 @@ int main()
 
         while (accumulator >= fixedDt) 
         {
-            falling.ComputeInertia();
             falling.Update(fixedDt);
             accumulator -= fixedDt;
             collision.CollideWithGround(falling, 0.0f);
