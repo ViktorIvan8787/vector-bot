@@ -9,6 +9,7 @@
 #include "mesh.hpp"
 #include "rigidBody.hpp"
 #include "geometry.hpp"
+#include "collision.hpp"
 
 #include <iostream>
 #include <cmath>
@@ -63,11 +64,17 @@ int main()
     Mesh groundMesh(groundVertices, {3, 3, 2});
     // bodies
     RigidBody coral(&cubeMesh, &smallCoralShader, smallCoralPos);
+    RigidBody falling(&cubeMesh, &smallCoralShader, glm::vec3(0.0f, 10.0f, 0.0f));
+    Collision collision;
  
     gridFloor.use();
     gridFloor.setFloat("gridSpacing", 1.0f);
     gridFloor.setFloat("lineWidth", 0.02f);
     gridFloor.setVec3("gridColor", glm::vec3(0.5f));
+
+    // sim time
+    const float fixedDt = 1.0f / 120.0f;
+    float accumulator = 0.0f;
  
  
     // Window while loop
@@ -97,6 +104,18 @@ int main()
  
         // coral cube
         drawCoralCube(smallCoralShader, coral, view, projection);
+        accumulator += deltaTime;
+        if (accumulator > 0.25f) accumulator = 0.25f;
+
+        while (accumulator >= fixedDt) 
+        {
+            falling.ComputeInertia();
+            falling.Update(fixedDt);
+            accumulator -= fixedDt;
+            collision.CollideWithGround(falling, 0.0f);
+        }
+
+        falling.Draw(view, projection);
         
         // check&call events and swap buffers
         glfwSwapBuffers(window);
