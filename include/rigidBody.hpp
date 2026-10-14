@@ -20,11 +20,10 @@ public:
     glm::quat orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
     glm::vec3 angularVelocity = glm::vec3(0.0f);
     glm::vec3 inverseInertiaBody; // for spin based off angular momentum
-    glm::vec3 angularMomentum = glm::vec3(0.3f, 4.0f, 0.3f);
+    glm::vec3 angularMomentum = glm::vec3(0.0f, 0.0f, 0.0f);
 
     float mass = 1.0f;
     float restitution = 0.8f;
-    float angularFriction = 0.999;
 
     RigidBody(Mesh* mesh, Shader* shader, glm::vec3 position)
         : position(position), mesh(mesh), shader(shader) { ComputeInertia(); }
@@ -73,7 +72,7 @@ public:
         // update velocity and position
         velocity += gravity * dt;
         position += velocity * dt;
-        angularMomentum *= angularFriction;
+        angularMomentum *= (1.0f - 0.5f * dt);                          // Energy loss present here
         angularVelocity = GetInvInertiaWorld() * angularMomentum;
 
         // update orientation
