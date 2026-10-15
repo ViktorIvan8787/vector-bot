@@ -22,8 +22,9 @@ public:
     glm::vec3 inverseInertiaBody; // for spin based off angular momentum
     glm::vec3 angularMomentum = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    float mass = 1.0f;
-    float restitution = 0.8f;
+    float mass = 100.0f;
+    float restitution = 0.5f;
+    float friction = 0.3f;
 
     RigidBody(Mesh* mesh, Shader* shader, glm::vec3 position)
         : position(position), mesh(mesh), shader(shader) { ComputeInertia(); }
